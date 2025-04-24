@@ -4,34 +4,40 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 
 // This function handles editing a single post by ID
-export async function PATCH(req: Request, context: { params: { id: string } }) {
+export async function PATCH(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
   const session = await getServerSession(authOptions);
+  const user = session?.user;
 
-  if (!session || session.user.role !== "ADMIN") {
-    return new NextResponse("Unauthorized", { status: 401 });
+  if (!user || user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
-  const { id } = context.params;
-  const { title, content, slug, categoryIds } = await req.json();
-
   try {
-    const updatedPost = await prisma.post.update({
-      where: { id },
+    const body = await req.json();
+    const { title, slug, content, categoryIds } = body;
+
+    const post = await prisma.post.update({
+      where: { id: params.id },
       data: {
         title,
-        content,
         slug,
+        content,
         categories: {
-          set: [],
-          connect: categoryIds.map((id: string) => ({ id })),
+          set: categoryIds.map((id: string) => ({ id })),
         },
       },
     });
 
-    return NextResponse.json(updatedPost);
+    return NextResponse.json(post);
   } catch (error) {
-    console.error("Error updating post:", error);
-    return new NextResponse("Failed to update post", { status: 500 });
+    console.error(error);
+    return NextResponse.json(
+      { error: "Failed to update post" },
+      { status: 500 }
+    );
   }
 }
 

@@ -12,38 +12,35 @@ const PostSchema = z.object({
 // This function handles creating a new post
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
+  const user = session?.user;
 
-  if (!session || session.user.role !== "ADMIN") {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
-
-  const { title, content, slug, categoryIds } = await req.json();
-
-  if (!title || !content || !slug || !Array.isArray(categoryIds)) {
-    return new NextResponse("Invalid post data", { status: 400 });
+  if (!user || user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email! },
-    });
+    const body = await req.json();
+    const { title, slug, content, categoryIds } = body;
 
     const post = await prisma.post.create({
       data: {
         title,
-        content,
         slug,
-        authorId: user!.id,
+        content,
+        authorId: user.id,
         categories: {
           connect: categoryIds.map((id: string) => ({ id })),
         },
       },
     });
 
-    return NextResponse.json(post);
+    return NextResponse.json(post, { status: 201 });
   } catch (error) {
-    console.error("Error creating post:", error);
-    return new NextResponse("Post creation failed", { status: 500 });
+    console.error(error);
+    return NextResponse.json(
+      { error: "Failed to create post" },
+      { status: 500 }
+    );
   }
 }
 
@@ -52,16 +49,32 @@ export async function GET() {
   try {
     const posts = await prisma.post.findMany({
       include: {
-        author: { select: { id: true, name: true } },
-        categories: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        categories: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         comments: true,
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: {
+        createdAt: "desc",
+      },
     });
 
     return NextResponse.json(posts);
   } catch (error) {
-    console.error("Error fetching posts:", error);
-    return new NextResponse("Failed to fetch posts", { status: 500 });
+    console.error(error);
+    return NextResponse.json(
+      { error: "Failed to fetch posts" },
+      { status: 500 }
+    );
   }
 }

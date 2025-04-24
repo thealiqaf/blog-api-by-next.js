@@ -41,6 +41,9 @@ model Category {
   id     String @id @default(cuid())
   name   String @unique
   posts  Post[]
+  parentId String?
+  parent   Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
 }
 
 model Comment {
