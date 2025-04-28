@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/db";
 import { z } from "zod";
+import { onlyAdmin } from "@/app/middleware/onlyAdmin";
 
 const PostSchema = z.object({
   title: z.string().min(3),
@@ -11,8 +12,10 @@ const PostSchema = z.object({
 
 // This function handles creating a new post
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  const user = session?.user;
+  const auth: any = await onlyAdmin(req);
+  if (auth) return auth;
+
+  const user = auth.session?.user;
 
   if (!user || user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -49,6 +52,7 @@ export async function GET(req: NextRequest) {
   try {
     const categoryId = req.nextUrl.searchParams.get("categoryId");
     const categoryName = req.nextUrl.searchParams.get("categoryName");
+    const order = req.nextUrl.searchParams.get("order");
 
     let whereClause = {};
 
@@ -72,7 +76,9 @@ export async function GET(req: NextRequest) {
           select: { id: true, name: true },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: {
+        createdAt: order === "asc" ? "asc" : "desc",
+      },
     });
 
     return NextResponse.json(posts);

@@ -2,14 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
+import { onlyLoggedIn } from "@/app/middleware/onlyLoggedin";
+import { onlyAdmin } from "@/app/middleware/onlyAdmin";
 
 // This function handles POST requests to create a new comment
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-
-  if (!session || !session.user || !session.user.email) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
+  const auth: any = await onlyLoggedIn(req);
+  if (auth) return auth;
 
   const { postId, content } = await req.json();
 
@@ -19,7 +18,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { email: auth.session.user.email },
     });
 
     if (!user) {
@@ -80,7 +79,7 @@ export async function GET(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const session = await getServerSession(authOptions);
 
-  if (!session || !session.user || !session.user.email) {
+  if (!session?.user.email) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
@@ -95,7 +94,6 @@ export async function DELETE(req: NextRequest) {
   }
 
   const commentId = req.nextUrl.searchParams.get("commentId");
-
   if (!commentId) {
     return new NextResponse("Missing commentId", { status: 400 });
   }

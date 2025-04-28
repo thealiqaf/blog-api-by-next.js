@@ -2,14 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/app/lib/db";
 import { authOptions } from "@/app/lib/auth";
+import { onlyAdmin } from "@/app/middleware/onlyAdmin";
+import { onlyLoggedIn } from "@/app/middleware/onlyLoggedin";
 
 // This function handles PATCH requests to update the user's profile
 export async function PATCH(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-
-  if (!session || !session.user || !session.user.email) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
+  const auth: any = await onlyLoggedIn(req);
+  if (auth) return auth;
 
   const { name } = await req.json();
 
@@ -19,7 +18,7 @@ export async function PATCH(req: NextRequest) {
 
   try {
     const updatedUser = await prisma.user.update({
-      where: { email: session.user.email },
+      where: { email: auth.session.user.email },
       data: {
         name: name || undefined,
       },

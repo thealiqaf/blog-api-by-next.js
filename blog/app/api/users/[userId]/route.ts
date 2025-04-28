@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/app/lib/db";
 import { authOptions } from "@/app/lib/auth";
+import { onlyAdmin } from "@/app/middleware/onlyAdmin";
 
 interface Params {
   params: {
@@ -11,11 +12,8 @@ interface Params {
 
 // PATCH - Update user (change role)
 export async function PATCH(req: NextRequest, { params }: Params) {
-  const session = await getServerSession(authOptions);
-
-  if (!session || session.user?.role !== "ADMIN") {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
+  const auth: any = await onlyAdmin(req);
+  if (auth) return auth;
 
   const { userId } = params;
   const { role } = await req.json();

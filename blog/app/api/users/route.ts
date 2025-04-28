@@ -2,14 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/app/lib/db";
 import { authOptions } from "@/app/lib/auth";
+import { onlyAdmin } from "@/app/middleware/onlyAdmin";
 
 // GET all users (admin only)
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-
-  if (!session || session.user?.role !== "ADMIN") {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
+  const auth: any = await onlyAdmin(req);
+  if (auth) return auth;
 
   try {
     const users = await prisma.user.findMany({
