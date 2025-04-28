@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/db";
@@ -45,36 +45,39 @@ export async function POST(req: Request) {
 }
 
 // This function handles fetching all posts
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const categoryId = req.nextUrl.searchParams.get("categoryId");
+    const categoryName = req.nextUrl.searchParams.get("categoryName");
+
+    let whereClause = {};
+
+    if (categoryId) {
+      whereClause = { categoryId };
+    } else if (categoryName) {
+      whereClause = {
+        category: {
+          name: categoryName,
+        },
+      };
+    }
+
     const posts = await prisma.post.findMany({
+      where: whereClause,
       include: {
         author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
+          select: { id: true, name: true },
         },
         categories: {
-          select: {
-            id: true,
-            name: true,
-          },
+          select: { id: true, name: true },
         },
-        comments: true,
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: { createdAt: "desc" },
     });
 
     return NextResponse.json(posts);
   } catch (error) {
-    console.error(error);
-    return NextResponse.json(
-      { error: "Failed to fetch posts" },
-      { status: 500 }
-    );
+    console.error("Error fetching posts:", error);
+    return new NextResponse("Server error", { status: 500 });
   }
 }
