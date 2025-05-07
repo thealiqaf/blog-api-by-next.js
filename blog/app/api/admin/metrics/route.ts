@@ -3,7 +3,7 @@ import { prisma } from "@/app/lib/db";
 import { onlyAdmin } from "@/app/middleware/onlyAdmin";
 
 export async function GET(req: NextRequest) {
-  const auth: any = await onlyAdmin(req);
+  const auth = await onlyAdmin(req);
   if (auth) return auth;
 
   const today = new Date();
