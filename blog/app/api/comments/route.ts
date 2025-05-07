@@ -3,11 +3,10 @@ import { prisma } from "@/app/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { onlyLoggedIn } from "@/app/middleware/onlyLoggedin";
-import { onlyAdmin } from "@/app/middleware/onlyAdmin";
 
 // This function handles POST requests to create a new comment
 export async function POST(req: NextRequest) {
-  const auth: any = await onlyLoggedIn(req);
+  const auth = await onlyLoggedIn(req);
   if (auth) return auth;
 
   const { postId, content } = await req.json();
