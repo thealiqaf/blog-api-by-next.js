@@ -2,14 +2,15 @@
 import NextAuth from "next-auth";
 
 import { prisma } from "@/app/lib/db"
-import { hashPassword } from "@/app/lib/password"
-import { getUserFromDb } from "@/app/utils/db"
+// import { hashPassword } from "@/app/lib/password"
+// import { getUserFromDb } from "@/app/utils/db"
 import { ZodError } from "zod"
 import { signInSchema } from "./app/lib/zod"
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -24,14 +25,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       authorize: async (credentials) => {
         try {
+
           const { email, password } = await signInSchema.parseAsync(credentials);
-          const pwHash = await hashPassword(password);
-          const user = await getUserFromDb(email, pwHash);
-          if (!user) throw new Error("Invalid credentials.");
-          return user || null;
+    
+          const user = await prisma.user.findUnique({ where: { email } });
+      
+          if (!user || !user.hashedPassword)  throw new Error("email or password invalid");
+      
+          const isValid = await bcrypt.compare(password, user.hashedPassword);
+          if (!isValid) throw new Error("Incorrect password");
+      
+          return user;
+          
         } catch (error) {
-          if (error instanceof ZodError) return null;
-          throw error;
+          if (error instanceof ZodError){
+            throw new Error("Invalid email or password format")
+          } ;
+          console.error("Authorization error:", error);
+          throw new Error("Login failed: " + error);
         }
       },
     }),
