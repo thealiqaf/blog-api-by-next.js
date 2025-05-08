@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/db";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
-import { onlyAdmin } from "@/app/middleware/onlyAdmin";
+import { auth } from "@/auth";
 
 // This function handles editing a single post by ID
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  const auth: any = await onlyAdmin(req);
-  if (auth) return auth;
+  const session = await auth();
+
+  if (!session || !session.user || !session.user.email || session.user.role !== "ADMIN") {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
 
   try {
     const body = await req.json();
@@ -43,14 +44,17 @@ export async function DELETE(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  const auth: any = await onlyAdmin(req);
-  if (auth) return auth;
+  const session = await auth();
+
+  if (!session || !session.user || !session.user.email || session.user.role !== "ADMIN") {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
 
   const { id } = params;
 
   const post = await prisma.post.findUnique({ where: { id } });
 
-  if (!post || post.authorId !== auth.session.user.id) {
+  if (!post || post.authorId !== session.user.id) {
     return NextResponse.json(
       { error: "Not found or forbidden" },
       { status: 404 }

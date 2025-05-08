@@ -1,10 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
+import {  NextResponse } from "next/server";
 import { prisma } from "@/app/lib/db";
-import { onlyAdmin } from "@/app/middleware/onlyAdmin";
+import { auth } from "@/auth";
 
-export async function GET(req: NextRequest) {
-  const auth = await onlyAdmin(req);
-  if (auth) return auth;
+export async function GET() {
+  const session = await auth();
+
+  if (!session || !session.user || session.user.role !== "ADMIN") {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);

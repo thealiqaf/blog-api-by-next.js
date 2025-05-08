@@ -1,6 +1,5 @@
 import { prisma } from "@/app/lib/db";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
+import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
 // This function handles delete requests for a specific category by ID
@@ -8,7 +7,7 @@ export async function DELETE(
   req: Request,
   context: { params: { id: string } }
 ) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session || session.user.role !== "ADMIN") {
     return new NextResponse("Unauthorized", { status: 401 });

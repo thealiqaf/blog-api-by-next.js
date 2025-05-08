@@ -1,13 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/db";
-import { authOptions } from "@/app/lib/auth";
-import { onlyAdmin } from "@/app/middleware/onlyAdmin";
+import { auth } from "@/auth";
+
+
 
 // GET all users (admin only)
-export async function GET(req: NextRequest) {
-  const auth: any = await onlyAdmin(req);
-  if (auth) return auth;
+export async function GET() {
+  const session = await auth();
+
+  if (!session || !session.user || !session.user.email || session.user.role !== "ADMIN") {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
 
   try {
     const users = await prisma.user.findMany({

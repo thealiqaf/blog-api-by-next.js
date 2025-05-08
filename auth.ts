@@ -51,6 +51,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       return token;
     },
+    async session({ session, token }) {
+      if (session.user && token) {
+        session.user.id = token.id as string;
+        session.user.role = token.role as "ADMIN" | "USER";
+      }
+      return session;
+    },
   },
   secret: process.env.AUTH_SECRET,
   debug: process.env.NODE_ENV === "development",

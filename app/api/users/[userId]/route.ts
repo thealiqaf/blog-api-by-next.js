@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+// import { getServerSession  } from "next-auth";
 import { prisma } from "@/app/lib/db";
-import { authOptions } from "@/app/lib/auth";
-import { onlyAdmin } from "@/app/middleware/onlyAdmin";
+import { auth } from "@/auth";
 
 interface Params {
   params: {
@@ -12,8 +11,11 @@ interface Params {
 
 // PATCH - Update user (change role)
 export async function PATCH(req: NextRequest, { params }: Params) {
-  const auth: any = await onlyAdmin(req);
-  if (auth) return auth;
+  const session = await auth();
+
+  if (!session || !session.user || !session.user.email) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
 
   const { userId } = params;
   const { role } = await req.json();
@@ -37,7 +39,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
 // DELETE - Delete a user
 export async function DELETE(req: NextRequest, { params }: Params) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session || session.user?.role !== "ADMIN") {
     return new NextResponse("Unauthorized", { status: 401 });

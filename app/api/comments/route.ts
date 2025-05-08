@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/db";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
-import { onlyLoggedIn } from "@/app/middleware/onlyLoggedin";
+import { auth } from "@/auth";
+
 
 // This function handles POST requests to create a new comment
 export async function POST(req: NextRequest) {
-  const auth = await onlyLoggedIn(req);
-  if (auth) return auth;
+  const session = await auth();
 
+  if (!session || !session.user || !session.user.email) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
   const { postId, content } = await req.json();
 
   if (!postId || !content || content.trim() === "") {
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const user = await prisma.user.findUnique({
-      where: { email: auth.session.user.email },
+      where: { email: session.user.email },
     });
 
     if (!user) {
@@ -76,9 +77,9 @@ export async function GET(req: NextRequest) {
 
 // This function handles DELETE requests to delete a comment
 export async function DELETE(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
-  if (!session?.user.email) {
+  if (!session || !session.user || !session.user.email) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 

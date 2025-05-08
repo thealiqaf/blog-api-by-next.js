@@ -1,10 +1,10 @@
 import { NextResponse, NextRequest } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
+import { auth } from "@/auth";
 import { prisma } from "@/app/lib/db";
 import { z } from "zod";
-import { onlyAdmin } from "@/app/middleware/onlyAdmin";
 
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const PostSchema = z.object({
   title: z.string().min(3),
   content: z.string().min(10),
@@ -12,10 +12,13 @@ const PostSchema = z.object({
 
 // This function handles creating a new post
 export async function POST(req: Request) {
-  const auth: any = await onlyAdmin(req);
-  if (auth) return auth;
+  const session = await auth();
 
-  const user = auth.session?.user;
+  if (!session || !session.user || !session.user.email || session.user.role !== "ADMIN") {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+
+  const user = session?.user;
 
   if (!user || user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
