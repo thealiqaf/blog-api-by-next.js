@@ -34,7 +34,7 @@ export async function PATCH(req: NextRequest) {
 
 // This function handles GET requests to fetch the user's profile
 export async function GET() {
-  const session = await auth();
+  const session = await getServerSession(authOptions);
 
   if (!session || !session.user || !session.user.email) {
     return new NextResponse("Unauthorized", { status: 401 });
