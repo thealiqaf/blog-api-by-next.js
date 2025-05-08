@@ -1,17 +1,17 @@
 import { prisma } from "@/app/lib/db";
 import { hashPassword } from "@/app/lib/password";
 import { NextResponse } from "next/server";
+import { signUpSchema } from "@/app/lib/zod";
+import { ZodError } from "zod";
+
 
 // POST /api/auth/signup
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    
-    const { email, password, name } = body;
 
-    if (!email || !password || !name) {
-      return new NextResponse("Missing required fields", { status: 400 });
-    }
+    const parsed = signUpSchema.parse(body);
+    const { email, password, name } = parsed;
 
     const existingUser = await prisma.user.findUnique({
       where: { email },
@@ -34,6 +34,12 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ message: "User registered successfully", user });
   } catch (error) {
+    // ✅ Step 4: Handle validation error
+    if (error instanceof ZodError) {
+      const errorMessages = error.errors.map((e) => e.message).join(" | ");
+      return new NextResponse(`Validation Error: ${errorMessages}`, { status: 400 });
+    }
+
     console.error("Signup error:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }

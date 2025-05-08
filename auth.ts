@@ -1,11 +1,8 @@
 // /auth.ts
 import NextAuth from "next-auth";
-
-import { prisma } from "@/app/lib/db"
-// import { hashPassword } from "@/app/lib/password"
-// import { getUserFromDb } from "@/app/utils/db"
-import { ZodError } from "zod"
-import { signInSchema } from "./app/lib/zod"
+import { prisma } from "@/app/lib/db";
+import { ZodError } from "zod";
+import { signInSchema } from "./app/lib/zod";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
